@@ -20,6 +20,9 @@ export const removeBidSui = async ({
         addTradeportRemoveBidSuiTx({txBlock, nftContract, bid})
       }
       break;
+    case "clutchy":
+      addOriginByteRemoveBidSuiTx({txBlock, bid})
+      break;
     case "bluemove":
       addBluemoveRemoveBidSuiTx({txBlock, nft, nftContract, bid})
       break;

@@ -22,7 +22,7 @@ export function addTradePortBuyTx({txBlock, nftContract, listing, sharedObjects}
   const { collection, royaltyStrategy } = sharedObjects
   if (collection && royaltyStrategy) {
     txBlock.moveCall({
-      target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::listings::ob_buy",
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::listings::ob_buy",
       arguments: [
         txBlock.object(tradeportListingStore),
         txBlock.pure(listing?.nonce),
@@ -41,7 +41,7 @@ export function addTradePortBuyTx({txBlock, nftContract, listing, sharedObjects}
     txBlock.incrementTotalTxsCount()
   } else {
     txBlock.moveCall({
-      target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::listings::buy",
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::listings::buy",
       arguments: [
         txBlock.object(tradeportListingStore),
         txBlock.pure(listing?.nonce),
@@ -89,9 +89,24 @@ export async function addOriginByteBuyTx({
 
   if (!buyerKiosk) {
     txBlock.moveCall({
-      target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::create_for_sender",
+      target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::new",
       arguments: [],
       typeArguments: []
+    })
+    txBlock.incrementTotalTxsCount()
+
+    txBlock.moveCall({
+      target: "0x2::transfer::public_share_object",
+      arguments: [
+        {
+          kind: "NestedResult",
+          index:  txBlock.getTotalTxsCount() - 1,
+          resultIndex: 0
+        }
+      ],
+      typeArguments: [
+        "0x2::kiosk::Kiosk"
+      ]
     })
     txBlock.incrementTotalTxsCount()
   }
@@ -275,6 +290,7 @@ export function addBlueMoveBuyTx({txBlock, nft, nftContract, listing}) {
   txBlock.incrementTotalTxsCount()
 }
 
+
 export async function addKeepsakeBuyTx({txBlock, buyer, nft, nftContract, listing}) {
   const commission = await getNftContractCommission({chain: "sui", nftContractId: nftContract?.id})
   const royaltyStrategy = nftContract?.properties?.shared_objects?.find(o => o.type?.includes("royalty_strategy_bps"))?.id
@@ -403,6 +419,31 @@ export const addTocenBuyTx = ({txBlock, nftTokenIds, nftType, totalPrice}) => {
     ],
     typeArguments: [
       nftType
+    ]
+  })
+  txBlock.incrementTotalTxsCount()
+}
+
+export function addSomisBuyTx({txBlock, nft, nftContract, listing, sharedObjects}) {
+  txBlock.splitCoins(txBlock.gas, [txBlock.pure(listing?.price)])
+  txBlock.incrementTotalTxsCount()
+
+  const {orderbook} = sharedObjects
+
+  txBlock.moveCall({
+    target: "0xf0b0beb956e26bde50dbd6ac393026c4525aee3b194a9478f09748f7211b5a02::marketplace::buy_nft",
+    arguments: [
+      txBlock.object(orderbook),
+      txBlock.pure(nft?.token_id),
+      {
+        kind: "NestedResult",
+        index: txBlock.getTotalTxsCount() - 1,
+        resultIndex: 0
+      }
+    ],
+    typeArguments: [
+      nftContract.properties.nft_type,
+      "0x2::sui::SUI"
     ]
   })
   txBlock.incrementTotalTxsCount()

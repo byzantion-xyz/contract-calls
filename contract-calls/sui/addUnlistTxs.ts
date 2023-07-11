@@ -2,7 +2,7 @@ import { bluemoveMarketConfigObject, keepsakeMarketplaceKiosk, keepsakeMarketpla
 
 export function addTradePortUnlistTx({txBlock, nft, nftContract}) {
   txBlock.moveCall({
-    target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::listings::unlist",
+    target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::listings::unlist",
     arguments: [
       txBlock.object(tradeportListingStore),
       txBlock.pure(nft?.listings?.[0]?.nonce)
@@ -42,7 +42,7 @@ export function addSouffl3UnlistTx({txBlock, nftContract, listingsToUnlist}) {
     target: "0x30d90b5b67be77e6e06f02dae9f0f2fcdad16e38854316ae8a7b4f5b4971f5e0::Market::delist_generic",
     arguments: [
       txBlock.object(souffl3VersionObject),
-      txBlock.pure(listingsToUnlist),
+      txBlock.pure(listingsToUnlist?.[0]?.nonce),
     ],
     typeArguments: [
       nftContract?.properties?.nft_type,

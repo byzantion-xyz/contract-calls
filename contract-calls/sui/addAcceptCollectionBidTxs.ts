@@ -1,6 +1,41 @@
-import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferCollectionDataObject, bluemoveRoyaltyCollectionObject, originByteAllowListObject, tocenMarketplaceObject } from "../../config/sui/constants"
+import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferCollectionDataObject, bluemoveRoyaltyCollectionObject, tocenMarketplaceObject } from "../constants"
 import {gqlChainRequest} from "../utils/gqlChainRequest";
 import {fetchWalletKiosks} from "../queries/fetchWalletKiosks";
+import { tradeportBiddingStore } from "../constants";
+
+export async function addTradeportAcceptCollectionBidTx({txBlock, nft, nftContract, bid, sharedObjects}) {
+  const { collection, royaltyStrategy } = sharedObjects
+
+  if (collection && royaltyStrategy) {
+    txBlock.moveCall({
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::ob_accept_bid",
+      arguments: [
+        txBlock.object(tradeportBiddingStore),
+        txBlock.pure(bid?.nonce),
+        txBlock.object(nft?.token_id),
+        txBlock.object(collection),
+        txBlock.object(royaltyStrategy)
+      ],
+      typeArguments: [
+        nftContract?.properties?.nft_type
+      ]
+    })
+    txBlock.incrementTotalTxsCount()
+  } else {
+    txBlock.moveCall({
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::accept_bid",
+      arguments: [
+        txBlock.object(tradeportBiddingStore),
+        txBlock.pure(bid?.nonce),
+        txBlock.object(nft?.token_id)
+      ],
+      typeArguments: [
+        nftContract?.properties?.nft_type
+      ]
+    })
+    txBlock.incrementTotalTxsCount()
+  }
+}
 
 export async function addOriginByteAcceptCollectionBidTx({txBlock, sender, nft, nftContract, bid, sharedObjects}) {
   const {orderbook, transferPolicy, royaltyStrategy, allowList} = sharedObjects
@@ -12,9 +47,24 @@ export async function addOriginByteAcceptCollectionBidTx({txBlock, sender, nft, 
 
     if (!senderKiosk) {
       txBlock.moveCall({
-        target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::create_for_sender",
+        target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::new",
         arguments: [],
         typeArguments: []
+      })
+      txBlock.incrementTotalTxsCount()
+  
+      txBlock.moveCall({
+        target: "0x2::transfer::public_share_object",
+        arguments: [
+          {
+            kind: "NestedResult",
+            index:  txBlock.getTotalTxsCount() - 1,
+            resultIndex: 0
+          }
+        ],
+        typeArguments: [
+          "0x2::kiosk::Kiosk"
+        ]
       })
       txBlock.incrementTotalTxsCount()
     }
@@ -153,33 +203,33 @@ export function addBluemoveAcceptCollectionBidTx({txBlock, nft, nftContract, bid
     txBlock.moveCall({
       target: "0xd5dd28cc24009752905689b2ba2bf90bfc8de4549b9123f93519bb8ba9bf9981::marketplace::delist",
       arguments: [
-        txBlock.object(bluemoveMarketConfigObject), // marketplace object
-        txBlock.object(nft?.token_id), // nft token
+        txBlock.object(bluemoveMarketConfigObject),
+        txBlock.object(nft?.token_id),
       ],
       typeArguments: [
-        nftContract.properties.nft_type, // nft type - "f1681f601a1c021a0b4c8c8859d50917308fcbebfd19364c4e856ac670bb8496::suishi::Suishi"
-        nftContract.properties.nft_type, // nft type - "f1681f601a1c021a0b4c8c8859d50917308fcbebfd19364c4e856ac670bb8496::suishi::Suishi"
+        nftContract.properties.nft_type,
+        nftContract.properties.nft_type,
       ]
     })
   }
   txBlock.moveCall({
     target: "0xd5dd28cc24009752905689b2ba2bf90bfc8de4549b9123f93519bb8ba9bf9981::offer_collection::accept_offer_collection",
     arguments: [
-      txBlock.object(bluemoveMarketConfigObject), // marketplace object
-      txBlock.object(bluemoveRoyaltyCollectionObject), // royalty object
-      txBlock.object(bluemoveCreatorConfigObject), // creator config object
-      txBlock.object(bluemoveOfferCollectionDataObject), // collection offer data object
-      txBlock.pure(bid?.nonce), // bid nonce
+      txBlock.object(bluemoveMarketConfigObject),
+      txBlock.object(bluemoveRoyaltyCollectionObject),
+      txBlock.object(bluemoveCreatorConfigObject),
+      txBlock.object(bluemoveOfferCollectionDataObject),
+      txBlock.pure(bid?.nonce),
       nft?.listings?.[0]?.price ?
         {
           kind: "Result",
           index: 0
         }
         :
-        txBlock.pure(nft?.token_id), // nft token
+        txBlock.pure(nft?.token_id),
     ],
     typeArguments: [
-      nftContract.properties.nft_type, // nft type - "f1681f601a1c021a0b4c8c8859d50917308fcbebfd19364c4e856ac670bb8496::suishi::Suishi"
+      nftContract.properties.nft_type,
     ]
   })
 }
@@ -188,13 +238,13 @@ export function addTocenAcceptCollectionBidTx({txBlock, nft, nftContract, bid}) 
   txBlock.moveCall({
     target: "0x3605d91c559e80cf8fdeabae9abaccb0bc38f96eac0b32bf47e95a9159a5277f::tocen_marketplace::accept_offer_list",
     arguments: [
-      txBlock.object(tocenMarketplaceObject), // marketplace object
-      txBlock.pure(nft?.token_id), // nft token
-      txBlock.pure(bid?.buyer), // bid buyer
-      txBlock.pure(bid?.price_str), // bid price
+      txBlock.object(tocenMarketplaceObject),
+      txBlock.pure(nft?.token_id),
+      txBlock.pure(bid?.buyer),
+      txBlock.pure(bid?.price_str),
     ],
     typeArguments: [
-      nftContract.properties.nft_type, // nft type - "f1681f601a1c021a0b4c8c8859d50917308fcbebfd19364c4e856ac670bb8496::suishi::Suishi"
+      nftContract.properties.nft_type,
     ]
   })
 }

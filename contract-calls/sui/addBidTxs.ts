@@ -1,11 +1,12 @@
 import { gqlChainRequest } from "../utils/gqlChainRequest"
 import { parseCrypto } from "../utils/parseCrypto"
-import { tradeportBeneficiaryAddress, tradeportBiddingStore, tradeportDefaultFeeBps, tradeportDefaultFeeDenominator } from "../constants"
+import { tradeportBeneficiaryAddress, tradeportBiddingStore } from "../constants"
 import { fetchWalletKiosks } from "../queries/fetchWalletKiosks"
+import {getSuiMarketFeePrice} from "../utils/getSuiMarketFeePrice"
 
 export function addTradePortBidTx({txBlock, nft, nftContract, bidAmount}) {
   const bidPrice = Number(parseCrypto(bidAmount, "sui"))
-  const marketFeePrice = bidPrice * tradeportDefaultFeeBps / tradeportDefaultFeeDenominator
+  const marketFeePrice = getSuiMarketFeePrice({price: bidPrice, nftType: nftContract?.properties?.nft_type})
 
   txBlock.splitCoins(txBlock.gas,
     [txBlock.pure(bidPrice + marketFeePrice)]
@@ -13,7 +14,7 @@ export function addTradePortBidTx({txBlock, nft, nftContract, bidAmount}) {
   txBlock.incrementTotalTxsCount()
 
   txBlock.moveCall({
-    target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::biddings::bid",
+    target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::bid",
     arguments: [
       txBlock.object(tradeportBiddingStore),
       txBlock.pure(nft?.token_id),
@@ -48,21 +49,36 @@ export function addTradePortBidTx({txBlock, nft, nftContract, bidAmount}) {
   txBlock.incrementTotalTxsCount()
 }
 
-export async function addOriginByteBidTx({txBlock, nft, bidAmount, bidder}) {
+export async function addOriginByteBidTx({txBlock, nft, nftContract, bidAmount, bidder}) {
   const buyerKioskRes = await gqlChainRequest({chain: "sui", query: fetchWalletKiosks, variables: {wallet: bidder}})
   const buyerKiosk = buyerKioskRes?.kiosks?.filter(kiosk => kiosk?.is_origin_byte)?.[0]?.id
 
   if (!buyerKiosk) {
     txBlock.moveCall({
-      target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::create_for_sender",
+      target: "0x083b02db943238dcea0ff0938a54a17d7575f5b48034506446e501e963391480::ob_kiosk::new",
       arguments: [],
       typeArguments: []
+    })
+    txBlock.incrementTotalTxsCount()
+
+    txBlock.moveCall({
+      target: "0x2::transfer::public_share_object",
+      arguments: [
+        {
+          kind: "NestedResult",
+          index:  txBlock.getTotalTxsCount() - 1,
+          resultIndex: 0
+        }
+      ],
+      typeArguments: [
+        "0x2::kiosk::Kiosk"
+      ]
     })
     txBlock.incrementTotalTxsCount()
   }
 
   const bidPrice = Number(parseCrypto(bidAmount, "sui"))
-  const marketFeePrice = bidPrice * tradeportDefaultFeeBps / tradeportDefaultFeeDenominator
+  const marketFeePrice = getSuiMarketFeePrice({price: bidPrice, nftType: nftContract?.properties?.nft_type})
 
   txBlock.splitCoins(txBlock.gas,
     [txBlock.pure(bidPrice + marketFeePrice)]
@@ -81,7 +97,7 @@ export async function addOriginByteBidTx({txBlock, nft, bidAmount, bidder}) {
           : txBlock.object(buyerKiosk),
       txBlock.object(nft?.token_id),
       txBlock.pure(bidPrice),
-      txBlock.pure(bidder),
+      txBlock.pure(tradeportBeneficiaryAddress),
       txBlock.pure(marketFeePrice),
       {
         kind: "NestedResult",

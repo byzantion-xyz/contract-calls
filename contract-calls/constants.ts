@@ -1,9 +1,13 @@
 export const tradeportBeneficiaryAddress = '0xbca3b5c01c8d1a93aed3a036feff45145518292dd3c1db1d67cc99a699a7b517'
 export const tradeportDefaultFeeBps = 200
 export const tradeportDefaultFeeDenominator = 10000
-export const tradeportListingStore = "0x8fa327b2156a86f5714afc154e63fb0253a0efc34947266873b452fe04f24179"
-export const tradeportBiddingStore = "0x2f8c98d9f42a9b04c27659ce24c5ac1dd9bbdcd6a8e83f2bfb6ae3a959d23a2d"
+export const tradeportListingStore = "0x47cba0b6309a12ce39f9306e28b899ed4b3698bce4f4911fd0c58ff2329a2ff6"
+export const tradeportBiddingStore = "0x3d3b0c6e616fdc1a45b2b73d022bc085448e78bd729d28081c7a340abb33cba1"
 export const tradeportMarketplaceObject = "0xc5f87120e388b532ee774f7bac23347679f632a1f2d59f4ed2bbf2ffe5a61b6f"
+
+export const nftTypesWithZeroCommission = [
+  "0x3949f64e3df33c00cf978163cbc748dd5108f72d72490b4ca760acdd41c1e45c::my_minter::Nft" // Mutant Ape Sui Club
+]
 
 export const originByteAllowListObject = "0xb9353bccfb7ad87b9195c6956b2ac81551350b104d5bfec9cf0ea6f5c467c6d1"
 
@@ -21,3 +25,11 @@ export const keepsakeMarketplaceObject = "0x08f446892306164934c0622388d8220961a9
 export const keepsakeMarketplaceKiosk = "0xfaf1b99c273737e914da13324ee1191f42346643083892d3f6f09a2d246967e5"
 
 export const tocenMarketplaceObject = "0xb2b140b2841329320b66f92373a2683af7f9066472233effab03755270bcf65f"
+
+export const originByteMarketplaces = [
+  "tradeport",
+  "clutchy",
+  "bluemove",
+  "hyperspace",
+  "somis"
+]

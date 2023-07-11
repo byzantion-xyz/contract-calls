@@ -1,9 +1,8 @@
-import { parseCrypto } from "../utils/parseCrypto";
 import { tradeportBiddingStore } from "../constants";
 
 export function addTradeportRemoveCollectionBidSuiTx({txBlock, nftContract, bid}) {
   txBlock.moveCall({
-    target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::biddings::cancel_bid",
+    target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::cancel_bid",
     arguments: [
       txBlock.object(tradeportBiddingStore),
       txBlock.pure(bid?.nonce)
@@ -15,7 +14,12 @@ export function addTradeportRemoveCollectionBidSuiTx({txBlock, nftContract, bid}
   txBlock.incrementTotalTxsCount()
 }
 
-export function addOriginByteRemoveCollectionBidSuiTx({txBlock, collectionContract, bid, bidder, sharedObjects}) {
+export function addOriginByteRemoveCollectionBidSuiTx({
+  txBlock,
+  collectionContract,
+  bid,
+  bidder,
+  sharedObjects}) {
   const {orderbook} = sharedObjects
 
   txBlock.moveCall({
@@ -31,7 +35,7 @@ export function addOriginByteRemoveCollectionBidSuiTx({txBlock, collectionContra
     target: "0xa0bab69d913e5a0ce8b448235a08bcf4c42da45c50622743dc9cab2dc0dff30f::orderbook::cancel_bid",
     arguments: [
       txBlock.object(orderbook),
-      txBlock.pure(parseCrypto(bid?.price, "sui")),
+      txBlock.pure(bid?.price),
       {
         kind: "NestedResult",
         index: txBlock.getTotalTxsCount() - 1,

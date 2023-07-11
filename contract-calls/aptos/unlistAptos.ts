@@ -1,4 +1,4 @@
-import { capitalizeFirstLetter } from "..utils/capitalizeFirstLetter"
+import { capitalizeFirstLetter } from "../utils/capitalizeFirstLetter"
 
 export const unlistAptos = async ({
   nft,

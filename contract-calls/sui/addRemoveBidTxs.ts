@@ -2,7 +2,7 @@ import { bluemoveOfferDataObject, tocenMarketplaceObject, tradeportBiddingStore 
 
 export function addTradeportRemoveBidSuiTx({txBlock, nftContract, bid}) {
   txBlock.moveCall({
-    target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::biddings::cancel_bid",
+    target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::cancel_bid",
     arguments: [
       txBlock.object(tradeportBiddingStore),
       txBlock.pure(bid?.nonce)
@@ -41,7 +41,7 @@ export function addBluemoveRemoveBidSuiTx({txBlock, nft, nftContract, bid}) {
   })
 }
 
-export function addTocenRemoveBidSuiTx({txBlock, nft, nftContract, bid}) {
+export function addTocenRemoveBidSuiTx({txBlock, nft, bid}) {
   txBlock.moveCall({
     target: "0x3605d91c559e80cf8fdeabae9abaccb0bc38f96eac0b32bf47e95a9159a5277f::tocen_marketplace::cancel_offer",
     arguments: [

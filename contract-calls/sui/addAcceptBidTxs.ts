@@ -1,18 +1,12 @@
-import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferDataObject, bluemoveRoyaltyCollectionObject, originByteAllowListObject, tradeportBiddingStore } from "../constants"
+import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferDataObject, bluemoveRoyaltyCollectionObject, tradeportBiddingStore } from "../constants"
 import { getSuiBidderKiosk } from "../utils/getSuiBidderKiosk"
 
-export async function addTradeportAcceptBidTx({
-  txBlock, 
-  nft, 
-  nftContract, 
-  bid, 
-  sharedObjects
-}) {
+export async function addTradeportAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects}) {
   const { collection, royaltyStrategy } = sharedObjects
 
   if (collection && royaltyStrategy) {
     txBlock.moveCall({
-      target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::biddings::ob_accept_bid",
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::ob_accept_bid",
       arguments: [
         txBlock.object(tradeportBiddingStore),
         txBlock.pure(bid?.nonce),
@@ -27,7 +21,7 @@ export async function addTradeportAcceptBidTx({
     txBlock.incrementTotalTxsCount()
   } else {
     txBlock.moveCall({
-      target: "0x7925fb044dbed3eda525ce059120f5ce3dbd6887ae6937ee9301383423406b57::biddings::accept_bid",
+      target: "0xb42dbb7413b79394e1a0175af6ae22b69a5c7cc5df259cd78072b6818217c027::biddings::accept_bid",
       arguments: [
         txBlock.object(tradeportBiddingStore),
         txBlock.pure(bid?.nonce),
@@ -164,7 +158,7 @@ export function addBluemoveAcceptBidTx({txBlock, nft, nftContract, bid}) {
         txBlock.pure(nft?.token_id),
     ],
     typeArguments: [
-      nftContract.properties.nft_type,
+      nftContract.properties.nft_type
     ]
   })
 }
