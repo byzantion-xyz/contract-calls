@@ -8,14 +8,13 @@ export const buyAptos = async ({
   listing,
   aptosSignAndSendTransaction
 }) => {
-  const formatLargeNum = (num: number) => parseInt(num?.toFixed(0))
+  const formatLargeNum = (num) => parseInt(num?.toFixed(0))
 
   const createPayload = async () => {
     switch(listing?.market_name) {
       case "portals":
         const commission = await getNftContractCommission({chain: "aptos", nftContractId: nftContract?.id})
         const portal = await getNftTradingPool({chain: "aptos", nftId: nft?.id})
-
         let newSpotPrice = portal?.spot_price + portal?.delta
         if (portal?.type == "exponential") {
           newSpotPrice =  portal?.spot_price + formatLargeNum((portal?.spot_price * (portal?.delta / 10000)))
@@ -76,11 +75,23 @@ export const buyAptos = async ({
           type: "entry_function_payload"
         }
       default:
+
+        if (nft?.collection?.slug.startsWith("0x")) {
+          return {
+            function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::listings_v2::buy_token",
+            type_arguments: [],
+            arguments: [
+              nft?.listings?.[0]?.nonce
+            ],
+            type: "entry_function_payload"
+          }
+        }
+
         let payloadArguments = [[], [], [], [], [], [], [], [], []]  
         payloadArguments?.[0]?.push(getAptosContractCallMarketParamName(listing?.market_name))
         payloadArguments?.[1]?.push(listing?.seller)
         payloadArguments?.[2]?.push(listing?.price_str)
-        payloadArguments?.[3]?.push(nftContract?.key?.split('::')?.[0]) // creator
+        payloadArguments?.[3]?.push(nftContract?.key?.split('::')?.[0])
         payloadArguments?.[4]?.push(nft?.collection?.title)
         payloadArguments?.[5]?.push(decodeURIComponent(nft?.token_id))
         payloadArguments?.[6]?.push(nft?.version)

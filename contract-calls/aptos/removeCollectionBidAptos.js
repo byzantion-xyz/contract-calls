@@ -7,12 +7,22 @@ export const removeCollectionBidAptos = async ({
     switch(bid?.market_contract?.name) {
       case "tradeport":
       default:
-        return {
-          function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::biddings::cancel_collection_bid",
-          type_arguments: [],
-          arguments: [
-            bid?.nonce
-          ]
+        if (bid?.collection?.slug.startsWith("0x")) {
+          return {
+            function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::biddings_v2::cancel_collection_bid",
+            type_arguments: [],
+            arguments: [
+              bid?.nonce
+            ]
+          }
+        } else {
+          return {
+            function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::biddings::cancel_collection_bid",
+            type_arguments: [],
+            arguments: [
+              bid?.nonce
+            ]
+          }
         }
       case "topaz":
         return {
@@ -33,7 +43,7 @@ export const removeCollectionBidAptos = async ({
           ],
           arguments: [
             "0x7ee5b48b8b7413d062331f6728652cd9e371f3a173379e5ee30870e8875d2784", // marketplace address
-            bid?.collection?.contract?.key?.split('::')?.[0], // creator 
+            bid?.collection?.contract?.key?.split('::')?.[0], // creator
             bid?.collection?.title,
             "1" // token amount
           ],

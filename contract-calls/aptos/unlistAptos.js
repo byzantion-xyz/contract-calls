@@ -6,14 +6,25 @@ export const unlistAptos = async ({
   aptosSignAndSendTransaction
 }) => {
   const createPayload = () => {
+    console.log("nft?.listings?.[0]?.market_name", nft?.listings?.[0]?.market_name)
     switch(nft?.listings?.[0]?.market_name) {
       case "tradeport":
         default:
+          if (nft?.collection?.slug.startsWith("0x")) {
+            return {
+              function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::listings_v2::unlist_token",
+              type_arguments: [],
+              arguments: [
+                nft?.listings?.[0]?.nonce
+              ],
+              type: "entry_function_payload"
+            }
+          }
           return {
             function: "0xe11c12ec495f3989c35e1c6a0af414451223305b579291fc8f3d9d0575a23c26::listings::unlist_token",
             type_arguments: [],
             arguments: [
-              nftContract?.key?.split('::')?.[0], // creator
+              nftContract?.key?.split('::')?.[0],
               nft?.collection?.title,
               decodeURIComponent(nft?.token_id),
               nft?.version
@@ -28,7 +39,7 @@ export const unlistAptos = async ({
           ],
           arguments: [
             "1", // token amount
-            nftContract?.key?.split('::')?.[0], // creator 
+            nftContract?.key?.split('::')?.[0],
             nft?.collection?.title,
             decodeURIComponent(nft?.token_id),
             nft?.version
