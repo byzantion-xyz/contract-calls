@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBluemoveRemoveBidSuiTx, addOriginByteRemoveBidSuiTx, addTocenRemoveBidSuiTx, addTradeportRemoveBidSuiTx } from "./addRemoveBidTxs";
+import { addBluemoveRemoveBidSuiTx, addOriginByteRemoveBidSuiTx, addTocenRemoveBidSuiTx, addTradeportKioskRemoveBidSuiTx, addTradeportRemoveBidSuiTx } from "./addRemoveBidTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const removeBidSui = async ({
@@ -14,10 +15,14 @@ export const removeBidSui = async ({
 
   switch(bid?.market_contract?.name) {
     case "tradeport":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         addOriginByteRemoveBidSuiTx({txBlock, bid})
       } else {
-        addTradeportRemoveBidSuiTx({txBlock, nftContract, bid})
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          addTradeportKioskRemoveBidSuiTx({txBlock, nftContract, bid})
+        } else {
+          addTradeportRemoveBidSuiTx({txBlock, nftContract, bid})
+        }
       }
       break;
     case "clutchy":
@@ -34,6 +39,8 @@ export const removeBidSui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id,
+  })
 }
-
