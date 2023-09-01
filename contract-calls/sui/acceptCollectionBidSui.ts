@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBluemoveAcceptCollectionBidTx, addOriginByteAcceptCollectionBidTx, addTocenAcceptCollectionBidTx } from "./addAcceptCollectionBidTxs";
+import { addBluemoveAcceptCollectionBidTx, addBluemoveKioskAcceptCollectionBidTx, addOriginByteAcceptCollectionBidTx, addTocenAcceptCollectionBidTx, addTradeportAcceptCollectionBidTx, addTradeportKioskAcceptCollectionBidTx } from "./addAcceptCollectionBidTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const acceptCollectionBidSui = async ({
@@ -15,17 +16,27 @@ export const acceptCollectionBidSui = async ({
 
   switch(bid?.market_contract?.name) {
     case "tradeport":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         await addOriginByteAcceptCollectionBidTx({
-          txBlock, 
-          sender: connectedWalletId, 
-          nft, 
-          nftContract, 
+          txBlock,
+          sender: connectedWalletId,
+          nft,
+          nftContract,
           bid,
           sharedObjects
         })
       } else {
-        
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addTradeportKioskAcceptCollectionBidTx({
+            txBlock, 
+            nft,
+            nftContract, 
+            bid, 
+            sharedObjects
+          })
+        } else {
+          await addTradeportAcceptCollectionBidTx({txBlock, nft, nftContract, bid, sharedObjects})
+        }
       }
       break;
     case "clutchy":
@@ -41,7 +52,7 @@ export const acceptCollectionBidSui = async ({
     case "hyperspace":
       break;
     case "bluemove":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         await addOriginByteAcceptCollectionBidTx({
           txBlock, 
           sender: connectedWalletId, 
@@ -51,7 +62,11 @@ export const acceptCollectionBidSui = async ({
           sharedObjects
         })
       } else {
-        addBluemoveAcceptCollectionBidTx({txBlock, nft, nftContract, bid})
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addBluemoveKioskAcceptCollectionBidTx({txBlock, sender: connectedWalletId, nft, nftContract, bid})
+        } else {
+          addBluemoveAcceptCollectionBidTx({txBlock, nft, nftContract, bid})
+        }
       }
       break;
     case "tocen":
@@ -62,5 +77,8 @@ export const acceptCollectionBidSui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id
+  })
 }

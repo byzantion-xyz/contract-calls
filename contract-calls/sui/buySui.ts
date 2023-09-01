@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBlueMoveBuyTx, addKeepsakeBuyTx, addOriginByteBuyTx, addSouffl3BuyTx, addTocenBuyTx, addTradePortBuyTx } from "./addBuyTxs";
+import { addBlueMoveBuyTx, addBluemoveKioskBuyTx, addHyperspaceBuyTx, addKeepsakeBuyTx, addOriginByteBuyTx, addSomisBuyTx, addSouffl3BuyTx, addTocenBuyTx, addTradePortBuyTx, addTradePortKioskBuyTx } from "./addBuyTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const buySui = async ({
@@ -10,13 +11,12 @@ export const buySui = async ({
   listing,
   suiSignAndExecuteTransactionBlock
 }) => {
-
   const txBlock = new SuiTxBlock()
   const sharedObjects = await getSuiSharedObjects(nftContract)
 
   switch(listing?.market_name) {
     case "tradeport":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         await addOriginByteBuyTx({
           txBlock,
           buyer: connectedWalletId,
@@ -26,15 +26,25 @@ export const buySui = async ({
           sharedObjects
         })
       } else {
-        await addTradePortBuyTx({
-          txBlock,
-          nftContract,
-          listing,
-          sharedObjects
-        })
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addTradePortKioskBuyTx({
+            txBlock,
+            buyer: connectedWalletId,
+            nft,
+            nftContract,
+            listing,
+            sharedObjects
+          })
+        } else {
+          await addTradePortBuyTx({
+            txBlock,
+            nftContract,
+            listing,
+            sharedObjects
+          })
+        }
       }
       break;
-    case "hyperspace":
     case "clutchy":
       await addOriginByteBuyTx({
         txBlock,
@@ -45,10 +55,52 @@ export const buySui = async ({
         sharedObjects
       })
       break;
+    case "hyperspace":
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
+        await addOriginByteBuyTx({
+          txBlock,
+          buyer: connectedWalletId,
+          nft,
+          nftContract,
+          listing,
+          sharedObjects
+        })
+      } else {
+        await addHyperspaceBuyTx({
+          txBlock,
+          buyer: connectedWalletId,
+          nft,
+          nftContract,
+          listing,
+          sharedObjects
+        })
+      } 
+      break;
+    case "somis":
+      if (sharedObjects?.marketplace) {
+        addSomisBuyTx({
+          txBlock,
+          nft,
+          nftContract,
+          listing,
+          marketplace: sharedObjects?.marketplace
+        })
+      } else {
+        await addOriginByteBuyTx({
+          txBlock,
+          buyer: connectedWalletId,
+          nft,
+          nftContract,
+          listing,
+          sharedObjects
+        })
+      }
+      break;
     case "souffl3":
       addSouffl3BuyTx({
         txBlock,
         remainingWalletBalance: walletBalance,
+        collectionId: nft?.collection?.id,
         nftContract,
         listing,
         sharedObjects
@@ -59,7 +111,16 @@ export const buySui = async ({
       )
       break;
     case "bluemove":
-      if (sharedObjects?.orderbook) {
+      if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+        await addBluemoveKioskBuyTx({
+          txBlock,
+          buyer: connectedWalletId,
+          nft,
+          nftContract,
+          listing,
+          sharedObjects
+        })
+      } else if (sharedObjects?.orderbook) {
         await addOriginByteBuyTx({
           txBlock,
           buyer: connectedWalletId,
@@ -99,6 +160,8 @@ export const buySui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id
+  })
 }
-

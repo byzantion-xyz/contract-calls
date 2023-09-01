@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBluemoveAcceptBidTx, addOriginByteAcceptBidTx, addTradeportAcceptBidTx } from "./addAcceptBidTxs";
+import { addBluemoveAcceptBidTx, addOriginByteAcceptBidTx, addTradeportAcceptBidTx, addTradeportKioskAcceptBidTx } from "./addAcceptBidTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const acceptBidSui = async ({
@@ -14,14 +15,19 @@ export const acceptBidSui = async ({
 
   switch(bid?.market_contract?.name) {
     case "tradeport":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         await addOriginByteAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects})
       } else {
-        addTradeportAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects})
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addTradeportKioskAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects})
+        } else {
+          addTradeportAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects})
+        }
       }
       break;
     case "clutchy":
     case "hyperspace":
+    case "somis":
       await addOriginByteAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects})
       break;
     case "bluemove":
@@ -32,6 +38,9 @@ export const acceptBidSui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id
+  })
 }
 
