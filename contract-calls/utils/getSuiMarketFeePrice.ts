@@ -1,9 +1,12 @@
-import { nftTypesWithZeroCommission, tradeportDefaultFeeBps, tradeportDefaultFeeDenominator } from "../constants"
+import { collectionIdsWithZeroCommission, tradeportDefaultFeeBps, tradeportDefaultFeeDenominator } from "../constants"
 
-export const getSuiMarketFeePrice = ({price, nftType}) => {
+export const getSuiMarketFeePrice = ({price, collectionId}) => {
   let marketFeePrice = 0
-  if (!nftTypesWithZeroCommission?.includes(nftType)) {
+  if (!collectionIdsWithZeroCommission?.includes(collectionId)) {
     marketFeePrice = (price * tradeportDefaultFeeBps / tradeportDefaultFeeDenominator)
   }
-  return marketFeePrice
+  if (marketFeePrice < 1) {
+    return marketFeePrice
+  }
+  return parseInt((marketFeePrice)?.toFixed(0))
 }

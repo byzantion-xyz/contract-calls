@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants"
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects"
-import { addOriginByteBidTx, addTradePortBidTx } from "./addBidTxs"
+import { addOriginByteBidTx, addTradePortBidTx, addTradePortKioskBidTx } from "./addBidTxs"
 import { SuiTxBlock } from "./SuiTxBlock"
 
 export const bidSui = async ({
@@ -12,11 +13,35 @@ export const bidSui = async ({
   const txBlock = new SuiTxBlock()
   const sharedObjects = await getSuiSharedObjects(nftContract)
 
-  if (sharedObjects?.orderbook) {
-    await addOriginByteBidTx({txBlock, nft, bidAmount, bidder: connectedWalletId})
+  if (sharedObjects?.orderbook && sharedObjects?.collection) {
+    await addOriginByteBidTx({
+      txBlock,
+      nft,
+      nftContract,
+      bidAmount,
+      bidder: connectedWalletId
+    })
   } else {
-    addTradePortBidTx({txBlock, nft, nftContract, bidAmount})
+    if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+      addTradePortKioskBidTx({
+        txBlock,
+        nft,
+        nftContract,
+        bidAmount,
+        sharedObjects
+      })
+    } else {
+      addTradePortBidTx({
+        txBlock,
+        nft,
+        nftContract,
+        bidAmount
+      })
+    }
   }
 
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id
+  })
 }

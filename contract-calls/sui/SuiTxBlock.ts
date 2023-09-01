@@ -1,4 +1,4 @@
-import { TransactionBlock } from "@mysten/sui.js";
+import { TransactionBlock } from "@mysten/sui.js/transactions";
 
 export class SuiTxBlock extends TransactionBlock {
   totalTxsCount: number;

@@ -1,4 +1,4 @@
-import { originByteAllowListObject } from "../constants";
+import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const claimTradeHoldSui = async ({
@@ -6,18 +6,17 @@ export const claimTradeHoldSui = async ({
   nftContract,
   suiSignAndExecuteTransactionBlock
 }) => {
-
   const txBlock = new SuiTxBlock()
 
-  const orderbook = nftContract?.properties?.shared_objects?.find(o => o.type?.includes("orderbook"))?.id
-
-  const transferPolicy = nftContract?.properties?.shared_objects?.find(o => o.type?.includes("transfer_policy"))?.id
-  const royaltyStrategy = nftContract?.properties?.shared_objects?.find(o => o.type?.includes("royalty_strategy_bps"))?.id
-  let allowList = nftContract?.properties?.shared_objects?.find(o => o.type?.includes("allowlist"))?.id
-  if (!allowList) allowList = originByteAllowListObject
+  const {
+    orderbook,
+    transferPolicy,
+    royaltyStrategy,
+    allowList
+  } = await getSuiSharedObjects(nftContract)
 
   txBlock.moveCall({
-    target: "0x5a162d3f3de6895c6de4be7a9ed75c170b79321668405bff2906869385e65c5c::orderbook::finish_trade",
+    target: "0x004abae9be1a4641de72755b4d9aedb1f083c8ecb86c7a5b6546a0e6912d7c18::orderbook::finish_trade",
     arguments: [
       txBlock.object(orderbook),
       txBlock.object(nft?.chain_state?.claimable_trade_id),
@@ -32,7 +31,7 @@ export const claimTradeHoldSui = async ({
   txBlock.incrementTotalTxsCount()
 
   txBlock.moveCall({
-    target: "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e::transfer_allowlist::confirm_transfer",
+    target: "0x353c4070df66f1e9d8542a621844765170338e633bdbaf37331f5c89c85a6968::transfer_allowlist::confirm_transfer",
     arguments: [
       txBlock.object(allowList),
       {
@@ -49,7 +48,7 @@ export const claimTradeHoldSui = async ({
 
   if (royaltyStrategy) {
     txBlock.moveCall({
-      target: "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e::royalty_strategy_bps::confirm_transfer",
+      target: "0x353c4070df66f1e9d8542a621844765170338e633bdbaf37331f5c89c85a6968::royalty_strategy_bps::confirm_transfer",
       arguments: [
         txBlock.object(royaltyStrategy),
         {
@@ -66,7 +65,7 @@ export const claimTradeHoldSui = async ({
   }
 
   txBlock.moveCall({
-    target: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::confirm",
+    target: "0xb2b8d1c3fd2b5e3a95389cfcf6f8bda82c88b228dff1f0e1b76a63376cbad7c6::transfer_request::confirm",
     arguments: [
       {
         kind: "Result",
@@ -80,6 +79,8 @@ export const claimTradeHoldSui = async ({
     ]
   })
 
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id
+  })
 }
-

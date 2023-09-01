@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addOriginByteListTx, addTradePortListTx } from "./addListTxs";
+import { addOriginByteListTx, addTradePortKioskListTx, addTradePortListTx } from "./addListTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const listSui = async ({
@@ -13,7 +14,7 @@ export const listSui = async ({
   const txBlock = new SuiTxBlock()
   const sharedObjects = await getSuiSharedObjects(nftContract)
 
-  if (sharedObjects?.orderbook) {
+  if (sharedObjects?.orderbook && sharedObjects?.collection) {
     await addOriginByteListTx({
       txBlock,
       seller: connectedWalletId,
@@ -23,17 +24,28 @@ export const listSui = async ({
       sharedObjects
     })
   } else {
-    addTradePortListTx({
-      txBlock,
-      nft,
-      nftContract,
-      price
-    })
+    if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+      await addTradePortKioskListTx({
+        txBlock,
+        nft,
+        nftContract,
+        price
+      })
+    } else {
+      addTradePortListTx({
+        txBlock,
+        nft,
+        nftContract,
+        price
+      })
+    }
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+    nftTokenId: nft?.token_id,
+  })
 }
-
 
 

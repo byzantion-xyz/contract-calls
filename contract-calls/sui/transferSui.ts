@@ -1,3 +1,4 @@
+import { getSuiSharedObjects } from "../utils/getSuiSharedObjects"
 import { addTransferTx } from "./addTransferTx"
 import { SuiTxBlock } from "./SuiTxBlock"
 
@@ -10,14 +11,16 @@ export const transferSui = async ({
 }) => {
 
   if (receiverId === connectedWalletId) {
-    return {error: `Cannot transfer to self`}
+    throw new Error(`Cannot transfer to self`)
   }
 
   const txBlock = new SuiTxBlock()
+  const sharedObjects = await getSuiSharedObjects(nftContract)
 
-  const transferTx = await addTransferTx({txBlock, nft, nftContract, senderId: connectedWalletId, receiverId})
-  if (transferTx?.error) return transferTx
+  await addTransferTx({txBlock, nft, nftContract, senderId: connectedWalletId, receiverId, sharedObjects})
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock
+  })
 }

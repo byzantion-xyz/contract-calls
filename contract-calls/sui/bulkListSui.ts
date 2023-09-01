@@ -1,5 +1,7 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addOriginByteListTx, addTradePortListTx } from "./addListTxs";
+import { addOriginByteListTx, addTradePortKioskListTx, addTradePortListTx } from "./addListTxs";
+import { addRelistTxs } from "./addRelistTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const bulkListSui = async ({
@@ -12,28 +14,50 @@ export const bulkListSui = async ({
 
   for (let listing of listingsToUpdate) {
 
-    const {market, listAmount, nft, nftContract} = listing
+    const {listAmount, nft, nftContract} = listing
     const sharedObjects = await getSuiSharedObjects(nftContract)
 
-    if (sharedObjects?.orderbook) {
-      addOriginByteListTx({
+    if (nft?.listings?.[0]?.price) { // if listed
+      await addRelistTxs({
         txBlock,
-        seller: connectedWalletId,
+        connectedWalletId,
         nft,
         nftContract,
         price: listAmount,
         sharedObjects
       })
-    } else {
-      addTradePortListTx({
-        txBlock,
-        nft,
-        nftContract,
-        price: listAmount,
-      })
+    } else { // if not listed
+      if (sharedObjects?.orderbook) {
+        await addOriginByteListTx({
+          txBlock,
+          seller: connectedWalletId,
+          nft,
+          nftContract,
+          price: listAmount,
+          sharedObjects
+        })
+      } else {
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addTradePortKioskListTx({
+            txBlock,
+            nft,
+            nftContract,
+            price: listAmount
+          })
+        } else {
+          addTradePortListTx({
+            txBlock,
+            nft,
+            nftContract,
+            price: listAmount
+          })
+        }
+      }
     }
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock,
+  })
 }

@@ -1,10 +1,12 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBlueMoveUnlistTx, addKeepsakeUnlistTx, addOriginByteUnlistTx, addSouffl3UnlistTx, addTocenUnlistTx, addTradePortUnlistTx } from "./addUnlistTxs";
+import { addBluemoveKioskUnlistTx, addBlueMoveUnlistTx, addHyperspaceUnlistTx, addKeepsakeUnlistTx, addOriginByteUnlistTx, addSomisUnlistTx, addSouffl3UnlistTx, addTocenUnlistTx, addTradePortKioskUnlistTx, addTradePortUnlistTx } from "./addUnlistTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const unlistSui = async ({
   nft, 
   nftContract,
+  connectedWalletId,
   listingsToUnlist,
   suiSignAndExecuteTransactionBlock
 }) => {
@@ -14,7 +16,7 @@ export const unlistSui = async ({
 
   switch(nft?.listings[0]?.market_name) {
     case "tradeport":
-      if (sharedObjects?.orderbook) {
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
         addOriginByteUnlistTx({
           txBlock,
           nft,
@@ -22,14 +24,38 @@ export const unlistSui = async ({
           sharedObjects
         })
       } else {
-        addTradePortUnlistTx({
+        if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+          await addTradePortKioskUnlistTx({
+            txBlock,
+            nft,
+            nftContract
+          })
+        } else {
+          addTradePortUnlistTx({
+            txBlock,
+            nft,
+            nftContract
+          })
+        }
+      }
+      break;
+    case "hyperspace":
+      if (sharedObjects?.orderbook && sharedObjects?.collection) {
+        addOriginByteUnlistTx({
           txBlock,
+          nft,
+          nftContract,
+          sharedObjects
+        })
+      } else {
+        await addHyperspaceUnlistTx({
+          txBlock,
+          buyer: connectedWalletId,
           nft,
           nftContract
         })
       }
       break;
-    case "hyperspace":
     case "clutchy":
       addOriginByteUnlistTx({
         txBlock,
@@ -37,6 +63,23 @@ export const unlistSui = async ({
         nftContract,
         sharedObjects
       })
+      break;
+    case "somis":
+      if (sharedObjects?.marketplace) {
+        addSomisUnlistTx({
+          txBlock,
+          nft,
+          nftContract,
+          marketplace: sharedObjects?.marketplace
+        })
+      } else {
+        addOriginByteUnlistTx({
+          txBlock,
+          nft,
+          nftContract,
+          sharedObjects
+        })
+      }
       break;
     case "souffl3":
       addSouffl3UnlistTx({
@@ -46,7 +89,14 @@ export const unlistSui = async ({
       })
       break;
     case "bluemove":
-      if (sharedObjects?.orderbook) {
+      if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+        await addBluemoveKioskUnlistTx({
+          txBlock,
+          connectedWalletId,
+          nft,
+          nftContract,
+        })
+      } else if (sharedObjects?.orderbook) {
         addOriginByteUnlistTx({
           txBlock,
           nft,
@@ -81,6 +131,7 @@ export const unlistSui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock
+  })
 }
-

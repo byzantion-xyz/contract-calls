@@ -1,5 +1,6 @@
-import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferDataObject, bluemoveRoyaltyCollectionObject, tradeportBiddingStore } from "../constants"
+import { bluemoveCreatorConfigObject, bluemoveMarketConfigObject, bluemoveOfferDataObject, bluemoveRoyaltyCollectionObject, collectionIdsThatRequireKioskLocking, tradeportBiddingStore, tradeportKioskBiddingEscrowKiosk, tradeportKioskBiddingStore } from "../constants"
 import { getSuiBidderKiosk } from "../utils/getSuiBidderKiosk"
+import { getSuiOwnerCapByKiosk } from "../utils/getSuiOwnerCapByKiosk"
 
 export async function addTradeportAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects}) {
   const { collection, royaltyStrategy } = sharedObjects
@@ -35,6 +36,86 @@ export async function addTradeportAcceptBidTx({txBlock, nft, nftContract, bid, s
   }
 }
 
+export async function addTradeportKioskAcceptBidTx({txBlock, nft, nftContract, bid, sharedObjects}) {
+  const { transferPolicy } = sharedObjects
+  const sellerKiosk = nft?.chain_state?.kiosk_id
+  const sellerKioskOwnerCap = await getSuiOwnerCapByKiosk(sellerKiosk)
+
+  txBlock.moveCall({
+    target: "0x33a9e4a3089d911c2a2bf16157a1d6a4a8cbd9a2106a98ecbaefe6ed370d7a25::kiosk_biddings::accept_bid",
+    arguments: [
+      txBlock.object(tradeportKioskBiddingStore),
+      txBlock.pure(bid?.nonce),
+      txBlock.object(tradeportKioskBiddingEscrowKiosk),
+      txBlock.object(sellerKiosk),
+      txBlock.object(sellerKioskOwnerCap),
+      txBlock.object(nft?.token_id),
+      txBlock.object(transferPolicy)
+    ],
+    typeArguments: [
+      nftContract?.properties?.nft_type
+    ]
+  })
+  txBlock.incrementTotalTxsCount()
+
+  const requiresKioskLocking = collectionIdsThatRequireKioskLocking?.includes(nft?.collection?.id)
+
+  if (requiresKioskLocking) {
+    txBlock.moveCall({
+      target: "0x434b5bd8f6a7b05fede0ff46c6e511d71ea326ed38056e3bcd681d2d7c2a7879::kiosk_lock_rule::prove",
+      arguments: [
+        {
+          kind: "NestedResult",
+          index: txBlock.getTotalTxsCount() - 1,
+          resultIndex: 1
+        },
+        txBlock.object(tradeportKioskBiddingEscrowKiosk),
+      ],
+      typeArguments: [
+        nftContract.properties.nft_type
+      ]
+    })
+    txBlock.incrementTotalTxsCount()
+
+    txBlock.moveCall({
+      target: "0x434b5bd8f6a7b05fede0ff46c6e511d71ea326ed38056e3bcd681d2d7c2a7879::royalty_rule::pay",
+      arguments: [
+        txBlock.object(transferPolicy),
+        {
+          kind: "NestedResult",
+          index: txBlock.getTotalTxsCount() - 2,
+          resultIndex: 1
+        },
+        {
+          kind: "NestedResult",
+          index: txBlock.getTotalTxsCount() - 2,
+          resultIndex: 0
+        }
+      ],
+      typeArguments: [
+        nftContract.properties.nft_type
+      ]
+    })
+    txBlock.incrementTotalTxsCount()
+  }
+
+  txBlock.moveCall({
+    target: "0x2::transfer_policy::confirm_request",
+    arguments: [
+      txBlock.object(transferPolicy),
+      {
+        kind: "NestedResult",
+        index: requiresKioskLocking ? txBlock.getTotalTxsCount() - 3 : txBlock.getTotalTxsCount() - 1,
+        resultIndex: 1
+      }
+    ],
+    typeArguments: [
+      nftContract.properties.nft_type
+    ]
+  })
+  txBlock.incrementTotalTxsCount()
+}
+
 export async function addOriginByteAcceptBidTx({
   txBlock, 
   nft, 
@@ -48,7 +129,7 @@ export async function addOriginByteAcceptBidTx({
 
   if (senderKiosk) {
     txBlock.moveCall({
-      target: "0xa0bab69d913e5a0ce8b448235a08bcf4c42da45c50622743dc9cab2dc0dff30f::bidding::sell_nft_from_kiosk",
+      target: "0x004abae9be1a4641de72755b4d9aedb1f083c8ecb86c7a5b6546a0e6912d7c18::bidding::sell_nft_from_kiosk",
       arguments: [
         txBlock.object(bid?.nonce),
         txBlock.object(senderKiosk),
@@ -63,7 +144,7 @@ export async function addOriginByteAcceptBidTx({
     txBlock.incrementTotalTxsCount()
   } else {
     txBlock.moveCall({
-      target: "0xa0bab69d913e5a0ce8b448235a08bcf4c42da45c50622743dc9cab2dc0dff30f::bidding::sell_nft",
+      target: "0x004abae9be1a4641de72755b4d9aedb1f083c8ecb86c7a5b6546a0e6912d7c18::bidding::sell_nft",
       arguments: [
         txBlock.object(bid?.nonce),
         txBlock.object(receiverKiosk),
@@ -78,7 +159,7 @@ export async function addOriginByteAcceptBidTx({
   }
 
   txBlock.moveCall({
-    target: "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e::transfer_allowlist::confirm_transfer",
+    target: "0x353c4070df66f1e9d8542a621844765170338e633bdbaf37331f5c89c85a6968::transfer_allowlist::confirm_transfer",
     arguments: [
       txBlock.object(allowList),
       {
@@ -94,7 +175,7 @@ export async function addOriginByteAcceptBidTx({
 
   if (royaltyStrategy) {
     txBlock.moveCall({
-      target: "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e::royalty_strategy_bps::confirm_transfer",
+      target: "0x353c4070df66f1e9d8542a621844765170338e633bdbaf37331f5c89c85a6968::royalty_strategy_bps::confirm_transfer",
       arguments: [
         txBlock.object(royaltyStrategy),
         {
@@ -111,7 +192,7 @@ export async function addOriginByteAcceptBidTx({
   }
 
   txBlock.moveCall({
-    target: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::confirm",
+    target: "0xb2b8d1c3fd2b5e3a95389cfcf6f8bda82c88b228dff1f0e1b76a63376cbad7c6::transfer_request::confirm",
     arguments: [
       {
         kind: "Result",

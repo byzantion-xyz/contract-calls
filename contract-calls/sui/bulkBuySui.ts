@@ -1,5 +1,6 @@
+import { collectionIdsToUseKioskListingContract } from "../constants";
 import { getSuiSharedObjects } from "../utils/getSuiSharedObjects";
-import { addBlueMoveBuyTx, addKeepsakeBuyTx, addOriginByteBuyTx, addSouffl3BuyTx, addTocenBuyTx, addTradePortBuyTx } from "./addBuyTxs";
+import { addBlueMoveBuyTx, addHyperspaceBuyTx, addKeepsakeBuyTx, addOriginByteBuyTx, addSouffl3BuyTx, addTocenBuyTx, addTradePortBuyTx, addTradePortKioskBuyTx } from "./addBuyTxs";
 import { SuiTxBlock } from "./SuiTxBlock";
 
 export const bulkBuySui = async ({
@@ -39,16 +40,57 @@ export const bulkBuySui = async ({
             sharedObjects
           })
         } else {
-          await addTradePortBuyTx({
+          if (collectionIdsToUseKioskListingContract?.includes(nft?.collection?.id) && nft?.chain_state?.kiosk_id) {
+            await addTradePortKioskBuyTx({
+              txBlock,
+              buyer: connectedWalletId,
+              nft,
+              nftContract,
+              listing: lowestListing,
+              sharedObjects
+            })
+          } else {
+            await addTradePortBuyTx({
+              txBlock,
+              nftContract,
+              listing: lowestListing,
+              sharedObjects
+            })
+          }
+        }
+        break;
+      case "hyperspace":
+        if (sharedObjects?.orderbook && sharedObjects?.collection) {
+          await addOriginByteBuyTx({
             txBlock,
+            buyer: connectedWalletId,
+            nft,
+            nftContract,
+            listing: lowestListing,
+            sharedObjects
+          })
+        } else {
+          await addHyperspaceBuyTx({
+            txBlock,
+            buyer: connectedWalletId,
+            nft,
             nftContract,
             listing: lowestListing,
             sharedObjects
           })
         }
         break;
-      case "hyperspace":
       case "clutchy":
+        await addOriginByteBuyTx({
+          txBlock,
+          buyer: connectedWalletId,
+          nft,
+          nftContract,
+          listing: lowestListing,
+          sharedObjects
+        })
+        break;
+      case "somis":
         await addOriginByteBuyTx({
           txBlock,
           buyer: connectedWalletId,
@@ -62,6 +104,7 @@ export const bulkBuySui = async ({
         addSouffl3BuyTx({
           txBlock,
           remainingWalletBalance: walletBalance - txBlock.getTotalBuyerCoinsAmount(),
+          collectionId: nft?.collection?.id,
           nftContract,
           listing: lowestListing,
           sharedObjects
@@ -127,7 +170,7 @@ export const bulkBuySui = async ({
   }
 
   if (txBlock.getTotalGasBudget() > 0) txBlock.setGasBudget(txBlock.getTotalGasBudget())
-  return await suiSignAndExecuteTransactionBlock({ transactionBlock: txBlock })
+  return await suiSignAndExecuteTransactionBlock({ 
+    transactionBlock: txBlock
+  })
 }
-
-

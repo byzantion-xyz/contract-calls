@@ -1,4 +1,4 @@
-import { bluemoveOfferDataObject, tocenMarketplaceObject, tradeportBiddingStore } from "../constants";
+import { bluemoveOfferDataObject, tocenMarketplaceObject, tradeportBiddingStore, tradeportKioskBiddingStore } from "../constants";
 
 export function addTradeportRemoveBidSuiTx({txBlock, nftContract, bid}) {
   txBlock.moveCall({
@@ -14,9 +14,23 @@ export function addTradeportRemoveBidSuiTx({txBlock, nftContract, bid}) {
   txBlock.incrementTotalTxsCount()
 }
 
+export function addTradeportKioskRemoveBidSuiTx({txBlock, nftContract, bid}) {
+  txBlock.moveCall({
+    target: "0x33a9e4a3089d911c2a2bf16157a1d6a4a8cbd9a2106a98ecbaefe6ed370d7a25::kiosk_biddings::cancel_bid",
+    arguments: [
+      txBlock.object(tradeportKioskBiddingStore),
+      txBlock.pure(bid?.nonce)
+    ],
+    typeArguments: [
+      nftContract?.properties?.nft_type
+    ]
+  })
+  txBlock.incrementTotalTxsCount()
+}
+
 export function addOriginByteRemoveBidSuiTx({txBlock, bid}) {
   txBlock.moveCall({
-    target: "0xa0bab69d913e5a0ce8b448235a08bcf4c42da45c50622743dc9cab2dc0dff30f::bidding::close_bid",
+    target: "0x004abae9be1a4641de72755b4d9aedb1f083c8ecb86c7a5b6546a0e6912d7c18::bidding::close_bid",
     arguments: [
       txBlock.pure(bid?.nonce)
     ],
@@ -41,7 +55,7 @@ export function addBluemoveRemoveBidSuiTx({txBlock, nft, nftContract, bid}) {
   })
 }
 
-export function addTocenRemoveBidSuiTx({txBlock, nft, bid}) {
+export function addTocenRemoveBidSuiTx({txBlock, nft, nftContract, bid}) {
   txBlock.moveCall({
     target: "0x3605d91c559e80cf8fdeabae9abaccb0bc38f96eac0b32bf47e95a9159a5277f::tocen_marketplace::cancel_offer",
     arguments: [
